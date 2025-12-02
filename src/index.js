@@ -2,8 +2,27 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const http = require('http'); // ← ADD THIS
 const connectDB = require('./database/db');
 
+// 1. CREATE HTTP SERVER FOR RENDER
+const server = http.createServer((req, res) => {
+  if (req.url === '/healthz' || req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('✅ Sentrify Bot is running');
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+// Start server on port provided by Render
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🌐 Health check server running on port ${PORT}`);
+});
+
+// 2. YOUR EXISTING BOT CODE
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,9 +30,7 @@ const client = new Client({
     GatewayIntentBits.GuildBans,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.DirectMessages
   ]
 });
 
@@ -42,7 +59,7 @@ for (const file of eventFiles) {
   const event = require(filePath);
   
   if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args));
+    client.once(event.name, (...args) => event.execute(...args, client));
   } else {
     client.on(event.name, (...args) => event.execute(...args));
   }
@@ -88,7 +105,6 @@ async function registerCommands() {
       }
     }
     
-    // Global commands
     if (globalCommands.length > 0) {
       await rest.put(
         Routes.applicationCommands(client.user.id),
@@ -97,7 +113,6 @@ async function registerCommands() {
       console.log(`✅ Registered ${globalCommands.length} global commands`);
     }
     
-    // Staff commands
     if (staffCommands.length > 0 && staffGuildId) {
       await rest.put(
         Routes.applicationGuildCommands(client.user.id, staffGuildId),
@@ -126,3 +141,11 @@ client.once('ready', async () => {
 
 // Login
 client.login(process.env.DISCORD_TOKEN);
+
+// 3. HANDLE PROCESS EXIT
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  server.close();
+  client.destroy();
+  process.exit(0);
+});
