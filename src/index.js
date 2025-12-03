@@ -98,7 +98,7 @@ async function registerCommands() {
     const staffCommands = [];
     
     for (const [name, command] of client.commands) {
-      if (['blacklist-user', 'unblacklist'].includes(name)) {
+      if (['blacklist-user', 'unblacklist', 'refresh-data.js'].includes(name)) {
         staffCommands.push(command.data.toJSON());
       } else {
         globalCommands.push(command.data.toJSON());
