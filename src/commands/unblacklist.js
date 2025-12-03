@@ -20,7 +20,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
-    await interaction.reply({ content: '🔄 Processing unblacklist request...', ephemeral: true });
+    await interaction.reply({ content: '<a:sentrify_spin:1445512589894483968> Processing unblacklist request...', ephemeral: true });
     
     const discordId = interaction.options.getString('discord-id');
     const reason = interaction.options.getString('reason');
